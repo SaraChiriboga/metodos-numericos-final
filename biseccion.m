@@ -1,45 +1,70 @@
-function biseccion(f, a, b, tol, max_iter)
+function [raiz, iteraciones_finales, error_aprox] = biseccion(funcion_anonima, a, b, tolerancia, max_iteraciones)
+% metodoBiseccion: Encuentra una raíz de una función usando el método de la bisección.
+%
+%   Args:
+%       funcion_anonima (function_handle): Handle a la función f(x) cuya raíz se desea encontrar.
+%                                         Ejemplo: @(x) x.^3 - x - 2
+%       a (double): Límite inferior del intervalo.
+%       b (double): Límite superior del intervalo.
+%       tolerancia (double): Criterio de parada.
+%       max_iteraciones (double): Número máximo de iteraciones permitidas.
+%
+%   Returns:
+%       raiz (double): La raíz aproximada encontrada.
+%       iteraciones_finales (double): El número de iteraciones realizadas.
+%       error_aprox (double): Una estimación del error (ancho del intervalo final / 2).
 
-    if f(a) * f(b) >= 0
-        error('El intervalo no garantiza una raíz (f(a) * f(b) >= 0)');
+% --- Validación de Argumentos (similar a los otros métodos) ---
+if ~isa(funcion_anonima, 'function_handle')
+    error('El primer argumento (funcion_anonima) debe ser un handle a una función anónima.');
+end
+if ~isnumeric(a) || ~isscalar(a) || ~isnumeric(b) || ~isscalar(b)
+    error('Los límites del intervalo (a y b) deben ser valores numéricos escalares.');
+end
+if ~isnumeric(tolerancia) || ~isscalar(tolerancia) || tolerancia <= 0
+    error('La tolerancia debe ser un valor numérico escalar positivo.');
+end
+if ~isnumeric(max_iteraciones) || ~isscalar(max_iteraciones) || max_iteraciones <= 0 || mod(max_iteraciones, 1) ~= 0
+    error('El número máximo de iteraciones debe ser un entero positivo.');
+end
+
+% --- Validación del Criterio de Bisección ---
+fa = funcion_anonima(a);
+fb = funcion_anonima(b);
+
+if fa * fb >= 0
+    error('El método de la Bisección requiere que f(a) y f(b) tengan signos opuestos en el intervalo [a, b]. Verifique la función o el intervalo.');
+end
+
+% --- Bucle Principal del Método de Bisección ---
+for i = 1:max_iteraciones
+    c = (a + b) / 2;
+    fc = funcion_anonima(c);
+    
+    % Criterio de parada
+    if abs(fc) < tolerancia || (b - a)/2 < tolerancia
+        iteraciones_finales = i;
+        raiz = c;
+        error_aprox = (b - a)/2; % Una estimación del error
+        return; % Salir de la función una vez encontrada la raíz
     end
 
-    % Inicializar vectores para guardar los datos
-    iterVec = [];
-    aVec = [];
-    bVec = [];
-    cVec = [];
-    fcVec = [];
-
-    for i = 1:max_iter
-        c = (a + b) / 2;
-        fc = f(c);
-
-        % Guardar datos de la iteración
-        iterVec(end+1) = i;
-        aVec(end+1) = a;
-        bVec(end+1) = b;
-        cVec(end+1) = c;
-        fcVec(end+1) = fc;
-
-        % Criterio de parada
-        if abs(fc) < tol || (b - a)/2 < tol
-            break;
-        end
-
-        % Actualizar intervalo
-        if f(a) * fc < 0
-            b = c;
-        else
-            a = c;
-        end
+    % Actualizar intervalo para la siguiente iteración
+    if fa * fc < 0 % Si f(a) y f(c) tienen signos opuestos, la raíz está en [a, c]
+        b = c;
+        fb = fc; % Actualizar fb para la próxima iteración
+    else % Si f(a) y f(c) tienen el mismo signo, la raíz está en [c, b]
+        a = c;
+        fa = fc; % Actualizar fa para la próxima iteración
     end
+end
 
-    % Mostrar la tabla
-    T = table(iterVec.', aVec.', bVec.', cVec.', fcVec.', ...
-        'VariableNames', {'Iteración', 'a', 'b', 'c', 'f(c)'});
-    disp(T);
+% Si el bucle termina sin encontrar la raíz dentro de la tolerancia
+% (es decir, alcanzó max_iteraciones)
+iteraciones_finales = max_iteraciones;
+raiz = c; % La última 'c' calculada
+error_aprox = (b - a)/2; % Error final
 
-    % Mostrar resultado final
-    fprintf('\nRaíz aproximada en x = %.6f\n', cVec(end));
+warning('El método de la Bisección no convergió a la tolerancia deseada en el número máximo de iteraciones.');
+
 end
